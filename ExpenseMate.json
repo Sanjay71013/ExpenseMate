@@ -1,0 +1,435 @@
+{
+  "name": "ExpenseMate",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2e40f018-1bb3-4e40-b6c8-a233da078db6",
+      "name": "Telegram Trigger",
+      "webhookId": "f6ba5ae6-98fa-4770-adf9-2555727c18bd",
+      "credentials": {
+        "telegramApi": {
+          "id": "KMEAHiKfCyVfPZm5",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "9dcc99dd-6cd2-461b-a80a-b0cb1ca8d633"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "a3b43b4a-3a58-43c0-b9ca-17b868673502",
+                    "leftValue": "={{ $json.message.voice.file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "audio"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "4fc42198-c1b1-481c-aee6-abb74aed81fc",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f6a41e5-7ceb-4954-ae0f-832d1b1cdaf5",
+              "name": "text",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        540,
+        -140
+      ],
+      "id": "ef17ea53-2416-4396-9fb0-816d4e790a5f",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        120
+      ],
+      "id": "02e8f1d7-ec23-4b95-9295-612a00aa3460",
+      "name": "Telegram",
+      "webhookId": "5c72c774-b455-4690-b2f4-bc6215ad377f",
+      "credentials": {
+        "telegramApi": {
+          "id": "KMEAHiKfCyVfPZm5",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        660,
+        120
+      ],
+      "id": "20619322-56ad-455f-96f7-4a92ac5d4279",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "X2Ydw0g1zgYyDEUq",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=You are an AI Expense Manager that helps the user track and understand their financial activity. You have access to:\n\n1. Google Sheets — contains structured data about the user's expenses, including transaction date, amount, spent on details, spent on what or whom, card-specific details, card balances and dues, etc. (NOTE:  The net balance can be calculated by balances in debit cards - due in credit cards. The user updates the information about the balances and dues in each card after each entry. So, no need to see the splitwise amount for net balance calculations).\n\n2. Calculator Tool — allows you to perform mathematical calculations. Use it for all the calculations that you make in the decision process.\n\n3. Think Tool — lets you reason through complex queries or break down multi-step logic before responding.\n\n4. SerpAPI Tool - lets you search web using api. you can get info about credit cards, debit cards from the card's website. Try to search about only the cards that the user has unless specified explicitly by the user.\n\nYour job is to:\n\n- summarize expense data when asked (e.g., “How much did I spend on groceries last month?”).\n\n- Answer questions about owed amounts (e.g., “How much do I owe Alex?”).\n\n- Provide breakdowns by category, card, or time period.\n\n- Use the calculator for precise totals and the think tool for multi-step reasoning.\n\nAlways respond clearly, using up-to-date information from the Sheets. If the query is ambiguous, politely ask for clarification. {{ $('Telegram Trigger').item.json.message.chat.id }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        840,
+        -20
+      ],
+      "id": "5f56c78f-8196-470f-a2e2-e95dd265dc74",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        820,
+        140
+      ],
+      "id": "cf24c8fd-5672-4730-bb08-cd4b3dfc24bf",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "WMC6tgA9EPP2RmPo",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1sDOvO__nVpE2gahuQlf3eIBgMvSA2Wgg5Przwqu1tv4/edit?gid=697943797#gid=697943797",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1sDOvO__nVpE2gahuQlf3eIBgMvSA2Wgg5Przwqu1tv4/edit?gid=1807491676#gid=1807491676",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        1020,
+        320
+      ],
+      "id": "7fc0d779-1045-4bc2-aaf9-74f7544da751",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AhuximJgns5GJxVv",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        320
+      ],
+      "id": "1fb825e0-5597-442f-8ff9-ed3566e14d7d",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        920,
+        320
+      ],
+      "id": "a8527641-5cca-4925-8fea-628f128cf7fd",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Switch').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        -20
+      ],
+      "id": "9b75bda9-b6cb-4616-96e1-c9837068840d",
+      "name": "Telegram1",
+      "webhookId": "9227f2f8-3611-4f8c-a8ae-e45c9f0f5f5f",
+      "credentials": {
+        "telegramApi": {
+          "id": "KMEAHiKfCyVfPZm5",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        1220,
+        320
+      ],
+      "id": "d023ff10-b1e4-4b3c-b22c-32289860feec",
+      "name": "SerpAPI",
+      "credentials": {
+        "serpApi": {
+          "id": "XZ4J0XvnAXFpca4W",
+          "name": "SerpAPI account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9972705c-51b2-4ab3-81ac-963af0df7f96",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "133bac8201f6ff35e04c9a8c1f8b270add35af2d832db1d060264e7af8f9eff9"
+  },
+  "id": "ngzRoGUXznu2AiBl",
+  "tags": []
+}
